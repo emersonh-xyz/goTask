@@ -12,9 +12,9 @@ func main() {
 	// Declare our routes
 	router.GET("/tasks", getTasks)
 	router.GET("/tasks/:id", getTaskById)
-
 	router.POST("/tasks", postTask)
 
+	// Start web server
 	router.Run("localhost:8080")
 }
 
@@ -25,13 +25,14 @@ type task struct {
 	Description string `json:"description"`
 }
 
+// Mock task data
 var tasks = []task{
 	{ID: "1", Name: "Task 1", Status: "Pending", Description: "This is task 1"},
 	{ID: "2", Name: "Task 2", Status: "In Progress", Description: "This is task 2"},
 	{ID: "3", Name: "Task 3", Status: "Completed", Description: "This is task 3"},
 }
 
-// Tasks API
+// Tasks API Routes
 func getTasks(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
