@@ -1,103 +1,374 @@
-import Image from "next/image";
+'use client'
+import { useEffect, useState } from "react"
+type Task = {
+    id: string;
+    name: string;
+    status: string;
+    description: string;
+    timeEstimate: number; // in hours
+    dueDate: string; // in YYYY-MM-DD format
+    isComplete: boolean;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+    const [tasks, setTasks] = useState<Task[]>([])
+    const [view, setView] = useState<'view' | 'create' | 'edit'>("view")
+    const [taskToEdit, setTaskToEdit] = useState<Task>()
+
+    useEffect(() => {
+        try {
+            fetch("http://localhost:8080/tasks")
+                .then((res) => {
+                    if (!res.ok) throw new Error("Failed to fetch");
+                    return res.json();
+                })
+                .then((data) => setTasks(data))
+                .catch((err) => console.error(err));
+        } catch (error) {
+            console.error("An unexpected error occurred:", error);
+        }
+    }, [])
+
+    return (
+        <>
+            {view === "view" && (
+                <div>
+                    <div className="flex justify-end">
+                        <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setView("create")}>
+                            Create New
+                        </button>
+<button
+    onClick={() => {
+        // Trigger the CSV export by making a GET request to the backend
+        fetch("http://localhost:8080/tasks/export", {
+            method: "GET",
+        })
+        .then((res) => {
+            if (!res.ok) {
+                throw new Error("Failed to export tasks");
+            }
+            return res.blob(); // Receive the response as a Blob
+        })
+        .then((blob) => {
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = "tasks.csv"; // Set the filename for the download
+            link.click();
+            URL.revokeObjectURL(url); // Clean up the object URL
+        })
+        .catch((err) => {
+            console.error("Error exporting tasks:", err);
+        });
+    }}
+    className="bg-green-500 text-white px-4 py-2 rounded mt-4"
+>
+    Export Tasks as CSV
+</button>
+
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Time Estimate</th>
+                                <th>Due Date</th>
+                                <th>Is Complete</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {tasks.map((task: Task) => (
+                                <tr key={task.id}>
+                                    <td>{task.id}</td>
+                                    <td>{task.name}</td>
+                                    <td>{task.status}</td>
+                                    <td>{task.description}</td>
+                                    <td>{task.timeEstimate || "N/A"}</td>
+                                    <td>{task.dueDate || "N/A"}</td>
+                                    <td>{task.isComplete ? "Yes" : "No"}</td>
+                                    <td>
+                                        <button
+                                            className="bg-red-500 text-white px-2 py-1 rounded mr-2"
+                                            onClick={() => setTasks(tasks.filter(t => t.id !== task.id))}
+                                        >
+                                            Delete
+                                        </button>
+                                        <button
+                                            className="bg-yellow-500 text-white px-2 py-1 rounded mr-2"
+                                            onClick={() => {
+                                                setTaskToEdit(task);
+                                                setView("edit");
+                                            }}
+                                        >
+                                            Update
+                                        </button>
+                                        <button
+                                            className={`${
+                                                task.isComplete ? "bg-green-500" : "bg-gray-500"
+                                            } text-white px-2 py-1 rounded`}
+                                            onClick={() => {
+                                                fetch(`http://localhost:8080/tasks/complete/${task.id}`, {
+                                                    method: "PUT",
+                                                    headers: {
+                                                        "Content-Type": "application/json",
+                                                    },
+                                                })
+                                                .then((res) => {
+                                                    if (!res.ok) {
+                                                        throw new Error("Failed to update task");
+                                                    }
+                                                    return res.json();
+                                                })
+                                                .then((savedTask) => {
+                                                    setTasks((prev) =>
+                                                        prev.map((t) => (t.id === savedTask.id ? savedTask : t))
+                                                    );
+                                                })
+                                                .catch((err) => {
+                                                    console.error("Error updating task:", err);
+                                                });
+                                            }}                                            
+                                        >
+                                            {task.isComplete ? "Mark as Incomplete" : "Mark as Complete"}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            {view === 'create' && (
+                <div>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                          
+                            const newTask = {
+                              id: "", // Backend will assign ID
+                              name: formData.get("name"),
+                              status: "Pending",
+                              description: formData.get("description"),
+                            };
+                          
+                            fetch("http://localhost:8080/tasks", {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify(newTask),
+                            })
+                              .then((res) => {
+                                if (!res.ok) {
+                                  throw new Error("Failed to create task");
+                                }
+                                return res.json();
+                              })
+                              .then((createdTask) => {
+                                setTasks((prev) => [...prev, createdTask]);
+                                setView("view");
+                              })
+                              .catch((err) => {
+                                console.error("Error creating task:", err);
+                              });
+                          }}
+                    >
+                        <div>
+                            <label htmlFor="name">Name:</label>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                required
+                                className="border px-2 py-1 rounded"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="description">Description:</label>
+                            <textarea
+                                id="description"
+                                name="description"
+                                required
+                                className="border px-2 py-1 rounded"
+                            ></textarea>
+                        </div>
+                        <div>
+                            <label htmlFor="timeEstimate">Time Estimate:</label>
+                            <input
+                                type="text"
+                                id="timeEstimate"
+                                name="timeEstimate"
+                                className="border px-2 py-1 rounded"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="dueDate">Due Date:</label>
+                            <input
+                                type="date"
+                                id="dueDate"
+                                name="dueDate"
+                                className="border px-2 py-1 rounded"
+                            />
+                        </div>
+                        <div className="flex justify-end mt-4">
+                            <button
+                                type="button"
+                                className="bg-gray-500 text-white px-4 py-2 rounded mr-2"
+                                onClick={() => setView("view")}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="bg-blue-500 text-white px-4 py-2 rounded"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+            {view === "edit" && taskToEdit && (
+  <div>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+
+        // Prepare the updated task object with form data
+        const updatedTask = {
+          ...taskToEdit, // Use taskToEdit to maintain the existing task structure
+          name: taskToEdit.name, // formData.get("name"),
+          description: taskToEdit.description, // formData.get("description"),
+          timeEstimate: taskToEdit.timeEstimate, // formData.get("timeEstimate"),
+          dueDate: taskToEdit.dueDate, // formData.get("dueDate"),
+        };
+        
+        // Send the PUT request to the backend to update the task
+        fetch(`http://localhost:8080/tasks/${taskToEdit.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedTask),
+        })
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error("Failed to update task");
+            }
+            return res.json();
+          })
+          .then((savedTask) => {
+            // Update the tasks in the state with the updated task
+            setTasks((prev) =>
+              prev.map((t) => (t.id === savedTask.id ? savedTask : t))
+            );
+            setView("view"); // Switch the view to "view" mode
+          })
+          .catch((err) => {
+            console.error("Error updating task:", err);
+          });
+      }}
+    >
+      <div>
+        <label htmlFor="name">Name:</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          value={taskToEdit.name}
+          onChange={(e) => {
+            // @ts-ignore
+            setTaskToEdit((prev) => ({
+              ...prev,
+              name: e.target.value,
+            }));
+          }}
+          className="border px-2 py-1 rounded"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="description">Description:</label>
+        <textarea
+          id="description"
+          name="description"
+          required
+          value={taskToEdit.description}
+          onChange={(e) => {
+            // @ts-ignore
+            setTaskToEdit((prev) => ({
+              ...prev,
+              description: e.target.value,
+            }));
+          }}
+          className="border px-2 py-1 rounded"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="timeEstimate">Time Estimate:</label>
+        <input
+          type="text"
+          id="timeEstimate"
+          name="timeEstimate"
+          value={taskToEdit.timeEstimate}
+          onChange={(e) => {
+            // @ts-ignore
+            setTaskToEdit((prev) => ({
+              ...prev,
+              timeEstimate: e.target.value,
+            }));
+          }}
+          className="border px-2 py-1 rounded"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="dueDate">Due Date:</label>
+        <input
+          type="date"
+          id="dueDate"
+          name="dueDate"
+          value={taskToEdit.dueDate}
+          onChange={(e) => {
+            // @ts-ignore
+            setTaskToEdit((prev) => ({
+              ...prev,
+              dueDate: e.target.value,
+            }));
+          }}
+          className="border px-2 py-1 rounded"
+        />
+      </div>
+
+      <div className="flex justify-end mt-4">
+        <button
+          type="button"
+          className="bg-gray-500 text-white px-4 py-2 rounded mr-2"
+          onClick={() => setView("view")}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="bg-blue-500 text-white px-4 py-2 rounded"
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+)}
+
+
+        </>
+    )
 }
