@@ -94,7 +94,26 @@ export default function Home() {
                                     <td>
                                         <button
                                             className="bg-red-500 text-white px-2 py-1 rounded mr-2"
-                                            onClick={() => setTasks(tasks.filter(t => t.id !== task.id))}
+                                            onClick={() => {
+                                                // Send DELETE request to the backend
+                                                fetch(`http://localhost:8080/tasks/${task.id}`, {
+                                                    method: "DELETE",
+                                                })
+                                                .then((res) => {
+                                                    if (!res.ok) {
+                                                        // Handle error response from backend
+                                                        console.error("Failed to delete task:", res.statusText);
+                                                        // Optionally, show an error message to the user
+                                                        throw new Error("Failed to delete task");
+                                                    }
+                                                    // Only update state if backend deletion was successful
+                                                    setTasks(tasks.filter(t => t.id !== task.id));
+                                                })
+                                                .catch((err) => {
+                                                    console.error("Error deleting task:", err);
+                                                    // Optionally, show an error message to the user
+                                                });
+                                            }}
                                         >
                                             Delete
                                         </button>
