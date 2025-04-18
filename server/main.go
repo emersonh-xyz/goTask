@@ -1,18 +1,70 @@
 package main
 
 import (
+	"context"
+	"encoding/csv"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"encoding/csv"
+
 	// "net/http"
 	"fmt"
 	"strconv"
-	// "strings"
+
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
+var client *mongo.Client
+
+func initMongo() {
+	// Initialize MongoDB client
+	var err error
+
+	// Probably should set the URI in an env but oh well
+	client, err = mongo.Connect(nil, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
+	if err != nil {
+		fmt.Println("Failed to connect to MongoDB:", err)
+		return
+	}
+
+	// Ping the database to ensure the connection is established
+	if err := client.Ping(nil, readpref.Primary()); err != nil {
+		fmt.Println("Failed to ping MongoDB:", err)
+		return
+	}
+	fmt.Println("Connected to MongoDB")
+
+	// Ensure the connection is closed when the application exits
+}
+
 func main() {
+
+	// Load environment variables
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Establish our connection to mongo
+	initMongo()
+
+	// Ensure the connection is closed when the application exits
+	defer func() {
+		if err := client.Disconnect(nil); err != nil {
+			fmt.Println("Error disconnecting from MongoDB:", err)
+		}
+	}()
+
+	// Load dummy data
+	// loadDummyData()
+
 	router := gin.Default()
 
 	// Enable CORS
@@ -29,11 +81,12 @@ func main() {
 	// Start server
 	router.Run("localhost:8080")
 }
+
 type task struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Status      string `json:"status"`
-	Description string `json:"description"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	Description  string `json:"description"`
 	TimeEstimate int    `json:"timeEstimate"`
 	DueDate      string `json:"dueDate"`
 	IsComplete   bool   `json:"isComplete"`
@@ -42,38 +95,58 @@ type task struct {
 // Mock task data
 var tasks = []task{
 	{
-		ID:          "1",
-		Name:        "Task 1",
-		Status:      "Pending",
-		Description: "This is task 1",
+		ID:           "1",
+		Name:         "Task 1",
+		Status:       "Pending",
+		Description:  "This is task 1",
 		TimeEstimate: 5,
-		DueDate:     "2023-12-01",
-		IsComplete:  false,
+		DueDate:      "2023-12-01",
+		IsComplete:   false,
 	},
 	{
-		ID:          "2",
-		Name:        "Task 2",
-		Status:      "In Progress",
-		Description: "This is task 2",
+		ID:           "2",
+		Name:         "Task 2",
+		Status:       "In Progress",
+		Description:  "This is task 2",
 		TimeEstimate: 3,
-		DueDate:     "2023-12-05",
-		IsComplete:  false,
+		DueDate:      "2023-12-05",
+		IsComplete:   false,
 	},
 	{
-		ID:          "3",
-		Name:        "Task 3",
-		Status:      "Completed",
-		Description: "This is task 3",
+		ID:           "3",
+		Name:         "Task 3",
+		Status:       "Completed",
+		Description:  "This is task 3",
 		TimeEstimate: 2,
-		DueDate:     "2023-11-30",
-		IsComplete:  true,
+		DueDate:      "2023-11-30",
+		IsComplete:   true,
 	},
 }
 
 // Tasks API Routes
 func getTasks(c *gin.Context) {
+	// Connect to the "tasks" collection in the "gotask" database
+	collection := client.Database("gotask").Collection("tasks")
+
+	// Fetch all tasks from the collection
+	cursor, err := collection.Find(c, bson.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
+		return
+	}
+	defer cursor.Close(c)
+
+	// Parse the tasks into a slice
+	var tasks []task
+	if err := cursor.All(c, &tasks); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse tasks"})
+		return
+	}
+
+	// Return the tasks as JSON
 	c.JSON(http.StatusOK, tasks)
 }
+
 func postTask(c *gin.Context) {
 	var newTask task
 
@@ -103,7 +176,6 @@ func markAsComplete(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"message": "Task not found"})
 }
 
-
 func editTask(c *gin.Context) {
 	id := c.Param("id")
 	var updatedTask task
@@ -125,7 +197,6 @@ func editTask(c *gin.Context) {
 
 	c.JSON(http.StatusNotFound, gin.H{"message": "Task not found"})
 }
-
 
 func generateNextID() string {
 	if len(tasks) == 0 {
@@ -151,6 +222,7 @@ func getTaskById(c *gin.Context) {
 	}
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
 }
+
 func exportTasksToCSV(c *gin.Context) {
 	// Set headers to indicate it's a CSV file
 	c.Header("Content-Type", "text/csv")
@@ -177,4 +249,48 @@ func exportTasksToCSV(c *gin.Context) {
 	}
 
 	// No need to return a JSON response since the file is directly written to the response
+}
+
+func loadDummyData() {
+	// Connect to the "tasks" collection in the "gotask" database
+	collection := client.Database("gotask").Collection("tasks")
+
+	// Dummy task data
+	dummyTasks := []interface{}{
+		task{
+			ID:           "1",
+			Name:         "Task 1",
+			Status:       "Pending",
+			Description:  "This is task 1",
+			TimeEstimate: 5,
+			DueDate:      "2023-12-01",
+			IsComplete:   false,
+		},
+		task{
+			ID:           "2",
+			Name:         "Task 2",
+			Status:       "In Progress",
+			Description:  "This is task 2",
+			TimeEstimate: 3,
+			DueDate:      "2023-12-05",
+			IsComplete:   false,
+		},
+		task{
+			ID:           "3",
+			Name:         "Task 3",
+			Status:       "Completed",
+			Description:  "This is task 3",
+			TimeEstimate: 2,
+			DueDate:      "2023-11-30",
+			IsComplete:   true,
+		},
+	}
+
+	// Insert dummy tasks into the collection
+	result, err := collection.InsertMany(context.TODO(), dummyTasks)
+	if err != nil {
+		log.Fatal("Failed to insert dummy tasks:", err)
+	}
+
+	fmt.Printf("Inserted %d tasks: %v\n", len(result.InsertedIDs), result.InsertedIDs)
 }
