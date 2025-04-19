@@ -12,7 +12,6 @@ import (
 
 	// "net/http"
 	"fmt"
-	"strconv"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -77,150 +76,171 @@ func main() {
 	router.PUT("/tasks/complete/:id", markAsComplete)
 	router.POST("/tasks", postTask)
 	router.GET("/tasks/export", exportTasksToCSV)
+	router.DELETE("/tasks/:id", deleteTask) // Add this line
 
 	// Start server
 	router.Run("localhost:8080")
 }
 
-type task struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Status       string `json:"status"`
-	Description  string `json:"description"`
-	TimeEstimate int    `json:"timeEstimate"`
-	DueDate      string `json:"dueDate"`
-	IsComplete   bool   `json:"isComplete"`
+type Task struct {
+	ID           bson.ObjectID `bson:"_id,omitempty"    json:"id"`
+	Name         string        `bson:"name"             json:"name"`
+	Status       string        `bson:"status"           json:"status"`
+	Description  string        `bson:"description"      json:"description"`
+	TimeEstimate int           `bson:"timeEstimate"     json:"timeEstimate"`
+	DueDate      string        `bson:"dueDate"          json:"dueDate"`
+	IsComplete   bool          `bson:"isComplete"       json:"isComplete"`
 }
 
-// Mock task data
-var tasks = []task{
-	{
-		ID:           "1",
-		Name:         "Task 1",
-		Status:       "Pending",
-		Description:  "This is task 1",
-		TimeEstimate: 5,
-		DueDate:      "2023-12-01",
-		IsComplete:   false,
-	},
-	{
-		ID:           "2",
-		Name:         "Task 2",
-		Status:       "In Progress",
-		Description:  "This is task 2",
-		TimeEstimate: 3,
-		DueDate:      "2023-12-05",
-		IsComplete:   false,
-	},
-	{
-		ID:           "3",
-		Name:         "Task 3",
-		Status:       "Completed",
-		Description:  "This is task 3",
-		TimeEstimate: 2,
-		DueDate:      "2023-11-30",
-		IsComplete:   true,
-	},
+func tasksColl() *mongo.Collection {
+	return client.Database("gotask").Collection("tasks")
 }
 
 // Tasks API Routes
 func getTasks(c *gin.Context) {
-	// Connect to the "tasks" collection in the "gotask" database
-	collection := client.Database("gotask").Collection("tasks")
-
-	// Fetch all tasks from the collection
-	cursor, err := collection.Find(c, bson.M{})
+	ctx := context.TODO()
+	cur, err := tasksColl().Find(ctx, bson.M{})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer cursor.Close(c)
+	defer cur.Close(ctx)
 
-	// Parse the tasks into a slice
-	var tasks []task
-	if err := cursor.All(c, &tasks); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse tasks"})
+	var all []Task
+	if err := cur.All(ctx, &all); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Return the tasks as JSON
-	c.JSON(http.StatusOK, tasks)
+	c.JSON(http.StatusOK, all)
 }
 
 func postTask(c *gin.Context) {
-	var newTask task
-
-	if err := c.BindJSON(&newTask); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task format"})
+	var t Task
+	if err := c.BindJSON(&t); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Assign a new ID (incremented from the last task)
-	newTask.ID = generateNextID()
-
-	tasks = append(tasks, newTask)
-	c.IndentedJSON(http.StatusCreated, newTask)
-}
-func markAsComplete(c *gin.Context) {
-	id := c.Param("id")
-
-	for i, t := range tasks {
-		if t.ID == id {
-			// Toggle the isComplete field
-			tasks[i].IsComplete = !tasks[i].IsComplete
-			c.IndentedJSON(http.StatusOK, tasks[i])
-			return
-		}
+	t.ID = bson.NewObjectID()
+	_, err := tasksColl().InsertOne(context.TODO(), t)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+	c.JSON(http.StatusCreated, t)
 }
 
 func editTask(c *gin.Context) {
-	id := c.Param("id")
-	var updatedTask task
-
-	if err := c.BindJSON(&updatedTask); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task format"})
+	hexID := c.Param("id")
+	oid, err := bson.ObjectIDFromHex(hexID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	for i, t := range tasks {
-		if t.ID == id {
-			// Keep original ID intact, just update the rest
-			tasks[i] = updatedTask
-			updatedTask.ID = id
-			c.IndentedJSON(http.StatusOK, updatedTask)
-			return
-		}
+	var upd Task
+	if err := c.BindJSON(&upd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"message": "Task not found"})
-}
-
-func generateNextID() string {
-	if len(tasks) == 0 {
-		return "1"
+	// build a $set document (you can omit fields you don't want to change)
+	set := bson.M{
+		"name":         upd.Name,
+		"status":       upd.Status,
+		"description":  upd.Description,
+		"timeEstimate": upd.TimeEstimate,
+		"dueDate":      upd.DueDate,
+		"isComplete":   upd.IsComplete,
 	}
-	lastID := tasks[len(tasks)-1].ID
-	// Assuming IDs are numeric strings
-	idNum, err := strconv.Atoi(lastID)
+
+	_, err = tasksColl().
+		UpdateByID(context.TODO(), oid, bson.M{"$set": set})
 	if err != nil {
-		return "1" // fallback if conversion fails
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	return strconv.Itoa(idNum + 1)
+
+	// return the new document
+	upd.ID = oid
+	c.JSON(http.StatusOK, upd)
 }
 
 func getTaskById(c *gin.Context) {
-	id := c.Param("id")
-
-	for _, t := range tasks {
-		if t.ID == id {
-			c.IndentedJSON(http.StatusFound, t)
-			return
-		}
+	hexID := c.Param("id")
+	oid, err := bson.ObjectIDFromHex(hexID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+
+	var t Task
+	err = tasksColl().
+		FindOne(context.TODO(), bson.M{"_id": oid}).
+		Decode(&t)
+	if err == mongo.ErrNoDocuments {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, t)
+}
+
+func markAsComplete(c *gin.Context) {
+	hexID := c.Param("id")
+	oid, err := bson.ObjectIDFromHex(hexID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	// fetch current value
+	var t Task
+	if err := tasksColl().
+		FindOne(context.TODO(), bson.M{"_id": oid}).
+		Decode(&t); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	// flip it
+	newVal := !t.IsComplete
+	_, err = tasksColl().
+		UpdateByID(context.TODO(), oid, bson.M{"$set": bson.M{"isComplete": newVal}})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	t.IsComplete = newVal
+	c.JSON(http.StatusOK, t)
+}
+
+func deleteTask(c *gin.Context) {
+	hexID := c.Param("id")
+	oid, err := bson.ObjectIDFromHex(hexID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		return
+	}
+
+	ctx := context.TODO() // Consider using c.Request.Context() with timeout
+	result, err := tasksColl().DeleteOne(ctx, bson.M{"_id": oid})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete task"})
+		return
+	}
+
+	if result.DeletedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "task deleted successfully"}) // Or use http.StatusNoContent
 }
 
 func exportTasksToCSV(c *gin.Context) {
@@ -235,62 +255,4 @@ func exportTasksToCSV(c *gin.Context) {
 	// Write the header row to the CSV
 	writer.Write([]string{"ID", "Name", "Status", "Description", "Time Estimate", "Due Date", "Is Complete"})
 
-	// Write task data to CSV
-	for _, t := range tasks {
-		writer.Write([]string{
-			t.ID,
-			t.Name,
-			t.Status,
-			t.Description,
-			strconv.Itoa(t.TimeEstimate),
-			t.DueDate,
-			strconv.FormatBool(t.IsComplete),
-		})
-	}
-
-	// No need to return a JSON response since the file is directly written to the response
-}
-
-func loadDummyData() {
-	// Connect to the "tasks" collection in the "gotask" database
-	collection := client.Database("gotask").Collection("tasks")
-
-	// Dummy task data
-	dummyTasks := []interface{}{
-		task{
-			ID:           "1",
-			Name:         "Task 1",
-			Status:       "Pending",
-			Description:  "This is task 1",
-			TimeEstimate: 5,
-			DueDate:      "2023-12-01",
-			IsComplete:   false,
-		},
-		task{
-			ID:           "2",
-			Name:         "Task 2",
-			Status:       "In Progress",
-			Description:  "This is task 2",
-			TimeEstimate: 3,
-			DueDate:      "2023-12-05",
-			IsComplete:   false,
-		},
-		task{
-			ID:           "3",
-			Name:         "Task 3",
-			Status:       "Completed",
-			Description:  "This is task 3",
-			TimeEstimate: 2,
-			DueDate:      "2023-11-30",
-			IsComplete:   true,
-		},
-	}
-
-	// Insert dummy tasks into the collection
-	result, err := collection.InsertMany(context.TODO(), dummyTasks)
-	if err != nil {
-		log.Fatal("Failed to insert dummy tasks:", err)
-	}
-
-	fmt.Printf("Inserted %d tasks: %v\n", len(result.InsertedIDs), result.InsertedIDs)
 }
