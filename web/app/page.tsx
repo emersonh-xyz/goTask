@@ -3,6 +3,7 @@ import { CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react"
 type Task = {
   id: string;
+  userId: string;
   name: string;
   status: string;
   description: string;
@@ -184,7 +185,7 @@ export default function Home() {
             </div>
           )}
           {view === 'create' && (
-            <div>
+            <div className="flex flex-col card bg-base-100 p-6 rounded-lg shadow-md">
               <form
                 onSubmit={handleCreateTask}
               >
@@ -195,35 +196,37 @@ export default function Home() {
                     id="name"
                     name="name"
                     required
-                    className="border px-2 py-1 rounded"
+                    className="w-full input"
                   />
                 </div>
-                <div>
-                  <label htmlFor="description">Description:</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    required
-                    className="border px-2 py-1 rounded"
-                  ></textarea>
-                </div>
-                <div>
-                  <label htmlFor="timeEstimate">Time Estimate:</label>
-                  <input
-                    type="text"
-                    id="timeEstimate"
-                    name="timeEstimate"
-                    className="border px-2 py-1 rounded"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dueDate">Due Date:</label>
-                  <input
-                    type="date"
-                    id="dueDate"
-                    name="dueDate"
-                    className="border px-2 py-1 rounded"
-                  />
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <label htmlFor="description">Description:</label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      required
+                      className="w-full textarea"
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label htmlFor="timeEstimate">Time Estimate:</label>
+                    <input
+                      type="text"
+                      id="timeEstimate"
+                      name="timeEstimate"
+                      className="w-full input"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="dueDate">Due Date:</label>
+                    <input
+                      type="date"
+                      id="dueDate"
+                      name="dueDate"
+                      className="w-full input"
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-end mt-4">
                   <button
