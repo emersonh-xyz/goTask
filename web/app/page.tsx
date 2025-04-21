@@ -19,6 +19,18 @@ export default function Home() {
   const [view, setView] = useState<'view' | 'create' | 'edit'>("view")
   const [taskToEdit, setTaskToEdit] = useState<Task>()
 
+  const getCompletedTasksPercentage = () => {
+    const completedTasks = tasks.filter(task => task.isComplete);
+    const totalTasks = tasks.length;
+    return totalTasks === 0 ? 0 : (completedTasks.length / totalTasks) * 100;
+  }
+
+  const getTotalCompletedTasks = () => {
+    const completedTasks = tasks.filter(task => task.isComplete);
+    const totalTasks = tasks.length;
+    return totalTasks === 0 ? 0 : completedTasks.length;
+  }
+
   useEffect(() => {
     try {
       handleFetchTasks()
@@ -98,12 +110,14 @@ export default function Home() {
   }
 
   return (
+
     <div className="background-wave h-screen bg-opacity-50 bg-base-300">
       <div>
         <div className="container mx-auto p-4">
           <div className="flex  justify-between items-center mb-6 mt-8">
             <h1 className="text-5xl font-bold">
               <span className="text-5xl">go</span><span className="text-primary">Task</span>.
+              <p className="text-sm mt-2">You've completed <span>{getTotalCompletedTasks()}</span>/{tasks.length} tasks </p>
             </h1>
             <div className="flex justify-end gap-3 ">
               <button className="btn btn-lg btn-primary" onClick={() => setView("create")}>
@@ -118,7 +132,7 @@ export default function Home() {
             </div>
           </div>
           {view === "view" && (
-            <div className="bg-base-100">
+            <div className="bg-base-100 w-full">
               {!tasks ? (
                 <div className="text-center py-4">
                   <p className="text-lg text-gray-500">No tasks yet. Create a new task to get started!</p>
@@ -148,7 +162,7 @@ export default function Home() {
                         <td className="flex items-center gap-2">
                           <button
                             className={`${task.isComplete
-                              ? "btn  btn-sm btn-error "
+                              ? "btn btn-sm btn-error "
                               : "btn btn-sm btn-success "
                               }`}
                             onClick={() => {
@@ -219,6 +233,10 @@ export default function Home() {
               )}
             </div>
           )}
+          {view === 'view' && (
+            <progress className="progress progress-success w-full m-4 mx-auto transition-all" value={getCompletedTasksPercentage()} max="100"></progress>
+
+          )}
           {view === 'create' && (
             <div className="flex flex-col card bg-base-100 p-6 rounded-lg shadow-md">
               <form
@@ -279,6 +297,7 @@ export default function Home() {
                   </button>
                 </div>
               </form>
+
             </div>
           )}
           {view === "edit" && taskToEdit && (
