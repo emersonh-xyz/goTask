@@ -95,7 +95,7 @@ export default function Home() {
               go<span className="text-primary">Task</span>.
             </h1>
             <div className="flex justify-end gap-3 ">
-              <button className="btn btn-lg btn-primary" onClick={() => setView("create")}>
+              <button className="btn btn-lg btn-primary btn-soft" onClick={() => setView("create")}>
                 + New Task
               </button>
               <button
@@ -107,11 +107,11 @@ export default function Home() {
             </div>
           </div>
           {view === "view" && (
-            <div className="bg-base-300">
+            <div className="bg-base-100">
 
               <table className="table">
                 <thead>
-                  <tr>
+                  <tr >
                     <th>ID</th>
                     <th>Name</th>
                     <th>Status</th>
@@ -122,7 +122,7 @@ export default function Home() {
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="">
+                <tbody className="rounded-3xl">
                   {tasks.map((task: Task) => (
                     <tr key={task.id}>
                       <td>{task.id}</td>
@@ -244,22 +244,20 @@ export default function Home() {
             </div>
           )}
           {view === "edit" && taskToEdit && (
-            <div>
+            <div className="flex flex-col card bg-base-100 p-6 rounded-lg shadow-md">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
 
-                  // Prepare the updated task object with form data
                   const updatedTask = {
-                    ...taskToEdit, // Use taskToEdit to maintain the existing task structure
-                    name: taskToEdit.name, // formData.get("name"),
-                    description: taskToEdit.description, // formData.get("description"),
-                    timeEstimate: taskToEdit.timeEstimate, // formData.get("timeEstimate"),
-                    dueDate: taskToEdit.dueDate, // formData.get("dueDate"),
+                    ...taskToEdit,
+                    name: taskToEdit.name,
+                    description: taskToEdit.description,
+                    timeEstimate: taskToEdit.timeEstimate,
+                    dueDate: taskToEdit.dueDate,
                   };
 
-                  // Send the PUT request to the backend to update the task
                   fetch(`http://localhost:8080/tasks/${taskToEdit.id}`, {
                     method: "PUT",
                     headers: {
@@ -274,19 +272,23 @@ export default function Home() {
                       return res.json();
                     })
                     .then((savedTask) => {
-                      // Update the tasks in the state with the updated task
                       setTasks((prev) =>
                         prev.map((t) => (t.id === savedTask.id ? savedTask : t))
                       );
-                      setView("view"); // Switch the view to "view" mode
+                      setView("view");
                     })
                     .catch((err) => {
                       console.error("Error updating task:", err);
                     });
                 }}
               >
-                <div>
-                  <label htmlFor="name">Name:</label>
+                <div className="mb-4">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Name:
+                  </label>
                   <input
                     type="text"
                     id="name"
@@ -294,81 +296,92 @@ export default function Home() {
                     required
                     value={taskToEdit.name}
                     onChange={(e) => {
-                      // @ts-ignore
                       setTaskToEdit((prev) => ({
                         ...prev,
                         name: e.target.value,
                       }));
                     }}
-                    className="border px-2 py-1 rounded"
+                    className="input w-full"
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="description">Description:</label>
+                <div className="mb-4">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Description:
+                  </label>
                   <textarea
                     id="description"
                     name="description"
                     required
                     value={taskToEdit.description}
                     onChange={(e) => {
-                      // @ts-ignore
                       setTaskToEdit((prev) => ({
                         ...prev,
                         description: e.target.value,
                       }));
                     }}
-                    className="border px-2 py-1 rounded"
+                    className="textarea w-full"
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="timeEstimate">Time Estimate:</label>
+                <div className="mb-4">
+                  <label
+                    htmlFor="timeEstimate"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Time Estimate:
+                  </label>
                   <input
                     type="text"
                     id="timeEstimate"
                     name="timeEstimate"
                     value={taskToEdit.timeEstimate}
                     onChange={(e) => {
-                      // @ts-ignore
                       setTaskToEdit((prev) => ({
                         ...prev,
                         timeEstimate: e.target.value,
                       }));
                     }}
-                    className="border px-2 py-1 rounded"
+                    className="input w-full"
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="dueDate">Due Date:</label>
+                <div className="mb-4">
+                  <label
+                    htmlFor="dueDate"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Due Date:
+                  </label>
                   <input
                     type="date"
                     id="dueDate"
                     name="dueDate"
                     value={taskToEdit.dueDate}
                     onChange={(e) => {
-                      // @ts-ignore
                       setTaskToEdit((prev) => ({
                         ...prev,
                         dueDate: e.target.value,
                       }));
                     }}
-                    className="border px-2 py-1 rounded"
+                    className="input w-full"
                   />
                 </div>
 
-                <div className="flex justify-end mt-4">
+                <div className="flex justify-end mt-6 gap-4">
                   <button
                     type="button"
-                    className="bg-gray-500 text-white px-4 py-2 rounded mr-2"
+                    className="btn btn-error btn-soft"
                     onClick={() => setView("view")}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-500 text-white px-4 py-2 rounded"
+                    className="btn btn-success btn-soft "
                   >
                     Save
                   </button>
