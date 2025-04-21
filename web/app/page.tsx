@@ -136,7 +136,11 @@ export default function Home() {
                       <td className="flex  items-center gap-2">
                         <button
                           className="btn btn-error btn-sm  btn-soft"
-                          onClick={() => setTasks(tasks.filter(t => t.id !== task.id))}
+                           onClick={() => {
+                                                // Send DELETE request to the backend
+                                                fetch(`http://localhost:8080/tasks/${task.id}`, {
+                                                    method: "DELETE",
+                                                })
                         >
                           Delete
                         </button>
