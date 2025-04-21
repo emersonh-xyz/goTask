@@ -3,11 +3,12 @@ package main
 import (
 	"net/http"
 
+	"encoding/csv"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"encoding/csv"
+
 	// "net/http"
-	"fmt"
 	"strconv"
 	// "strings"
 )
@@ -29,11 +30,12 @@ func main() {
 	// Start server
 	router.Run("localhost:8080")
 }
+
 type task struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Status      string `json:"status"`
-	Description string `json:"description"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	Description  string `json:"description"`
 	TimeEstimate int    `json:"timeEstimate"`
 	DueDate      string `json:"dueDate"`
 	IsComplete   bool   `json:"isComplete"`
@@ -42,31 +44,31 @@ type task struct {
 // Mock task data
 var tasks = []task{
 	{
-		ID:          "1",
-		Name:        "Task 1",
-		Status:      "Pending",
-		Description: "This is task 1",
+		ID:           "1",
+		Name:         "Task 1",
+		Status:       "Pending",
+		Description:  "This is task 1",
 		TimeEstimate: 5,
-		DueDate:     "2023-12-01",
-		IsComplete:  false,
+		DueDate:      "2023-12-01",
+		IsComplete:   false,
 	},
 	{
-		ID:          "2",
-		Name:        "Task 2",
-		Status:      "In Progress",
-		Description: "This is task 2",
+		ID:           "2",
+		Name:         "Task 2",
+		Status:       "In Progress",
+		Description:  "This is task 2",
 		TimeEstimate: 3,
-		DueDate:     "2023-12-05",
-		IsComplete:  false,
+		DueDate:      "2023-12-05",
+		IsComplete:   false,
 	},
 	{
-		ID:          "3",
-		Name:        "Task 3",
-		Status:      "Completed",
-		Description: "This is task 3",
+		ID:           "3",
+		Name:         "Task 3",
+		Status:       "Completed",
+		Description:  "This is task 3",
 		TimeEstimate: 2,
-		DueDate:     "2023-11-30",
-		IsComplete:  true,
+		DueDate:      "2023-11-30",
+		IsComplete:   true,
 	},
 }
 
@@ -103,7 +105,6 @@ func markAsComplete(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"message": "Task not found"})
 }
 
-
 func editTask(c *gin.Context) {
 	id := c.Param("id")
 	var updatedTask task
@@ -125,7 +126,6 @@ func editTask(c *gin.Context) {
 
 	c.JSON(http.StatusNotFound, gin.H{"message": "Task not found"})
 }
-
 
 func generateNextID() string {
 	if len(tasks) == 0 {
