@@ -1,2 +1,27 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+.background-wave {
+  position: relative;
+  z-index: 0;
+  /* Ensure the pseudo-element is behind the content */
+}
+
+.background-wave::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Use rgba for transparency */
+  background: radial-gradient(circle, transparent 20%, #040405 20%, #040405 80%, transparent 80%, transparent),
+    radial-gradient(circle, transparent 20%, #040405 20%, #040405 80%, transparent 80%, transparent) 40px 40px,
+    linear-gradient(#554b9a 3.2px, transparent 3.2px) 0 -1.6px,
+    linear-gradient(90deg, #554b9a 3.2px, #040405 3.2px) -1.6px 0;
+  background-size: 80px 80px, 80px 80px, 40px 40px, 40px 40px;
+  opacity: 0.09;
+  /* Adjust the opacity here */
+  z-index: -1;
+  /* Place the pseudo-element behind the content */
+}
