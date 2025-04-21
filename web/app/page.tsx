@@ -1,4 +1,5 @@
 'use client'
+import { CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react"
 type Task = {
   id: string;
@@ -98,7 +99,7 @@ export default function Home() {
             </button>
             <button
               onClick={exportCSVC}
-              className="btn btn-accent btn-lg"
+              className="btn btn-accent btn-lg  btn-soft"
             >
               Export Tasks as CSV
             </button>
@@ -132,13 +133,13 @@ export default function Home() {
                     <td>{task.isComplete ? "Yes" : "No"}</td>
                     <td className="flex  items-center gap-2">
                       <button
-                        className="btn btn-error btn-sm"
+                        className="btn btn-error btn-sm  btn-soft"
                         onClick={() => setTasks(tasks.filter(t => t.id !== task.id))}
                       >
                         Delete
                       </button>
                       <button
-                        className="btn btn-warning btn-sm"
+                        className="btn btn-warning btn-sm  btn-soft"
                         onClick={() => {
                           setTaskToEdit(task);
                           setView("edit");
@@ -147,7 +148,7 @@ export default function Home() {
                         Edit Task
                       </button>
                       <button
-                        className={`${task.isComplete ? "btn btn-neutral btn-sm" : "btn btn-neutral btn-sm"
+                        className={`${task.isComplete ? "btn btn-soft btn-sm" : "btn btn-sm  btn-soft"
                           } `}
                         onClick={() => {
                           fetch(`http://localhost:8080/tasks/complete/${task.id}`, {
@@ -172,7 +173,7 @@ export default function Home() {
                             });
                         }}
                       >
-                        {task.isComplete ? "❌" : "✅"}
+                        {task.isComplete ? <XIcon className="text-red-400" /> : <CheckIcon className="text-green-400" />}
                       </button>
                     </td>
                   </tr>
