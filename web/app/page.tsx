@@ -20,15 +20,15 @@ export default function Home() {
   const [taskToEdit, setTaskToEdit] = useState<Task>()
 
   const getCompletedTasksPercentage = () => {
-    const completedTasks = tasks.filter(task => task.isComplete);
-    const totalTasks = tasks.length;
-    return totalTasks === 0 ? 0 : (completedTasks.length / totalTasks) * 100;
+    const completedTasks = tasks?.filter(task => task.isComplete);
+    const totalTasks = tasks?.length;
+    return totalTasks === 0 ? 0 : (completedTasks?.length / totalTasks) * 100;
   }
 
   const getTotalCompletedTasks = () => {
-    const completedTasks = tasks.filter(task => task.isComplete);
-    const totalTasks = tasks.length;
-    return totalTasks === 0 ? 0 : completedTasks.length;
+    const completedTasks = tasks?.filter(task => task?.isComplete);
+    const totalTasks = tasks?.length;
+    return totalTasks === 0 ? 0 : completedTasks?.length;
   }
 
   useEffect(() => {
@@ -117,7 +117,11 @@ export default function Home() {
           <div className="flex  justify-between items-center mb-6 mt-8">
             <h1 className="text-5xl font-bold">
               <span className="text-5xl">go</span><span className="text-primary">Task</span>.
-              <p className="text-sm mt-2">You've completed <span>{getTotalCompletedTasks()}</span>/{tasks.length} tasks </p>
+              <p className="text-sm mt-2">
+                {!tasks
+                  ? "No tasks available."
+                  : `You've completed ${getTotalCompletedTasks()} of ${tasks?.length} tasks.`}
+              </p>
             </h1>
             <div className="flex justify-end gap-3 ">
               <button className="btn btn-lg btn-primary" onClick={() => setView("create")}>
@@ -234,7 +238,7 @@ export default function Home() {
             </div>
           )}
           {view === 'view' && (
-            <progress className="progress progress-success w-full m-4 mx-auto transition-all" value={getCompletedTasksPercentage()} max="100"></progress>
+            <progress className="progress progress-success w-full m-4 mx-auto transition-all anima" value={getCompletedTasksPercentage() || 0} max="100"></progress>
 
           )}
           {view === 'create' && (
