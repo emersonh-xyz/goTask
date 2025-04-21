@@ -7,23 +7,16 @@ import (
 	"net/http"
 	"os"
 
-	"encoding/csv"
+	"fmt"
+	"strconv"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-
-	// "net/http"
-
-	"fmt"
-
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
-	"strconv"
-
-
 )
 
 var client *mongo.Client
@@ -151,7 +144,7 @@ func editTask(c *gin.Context) {
 		return
 	}
 
-  // build a $set document (you can omit fields you don't want to change)
+	// build a $set document (you can omit fields you don't want to change)
 	set := bson.M{
 		"name":         upd.Name,
 		"status":       upd.Status,
@@ -167,7 +160,6 @@ func editTask(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 
 	// return the new document
 	upd.ID = oid
@@ -262,10 +254,23 @@ func exportTasksToCSV(c *gin.Context) {
 	// Write the header row to the CSV
 	writer.Write([]string{"ID", "Name", "Status", "Description", "Time Estimate", "Due Date", "Is Complete"})
 
-  // Write task data to CSV
-	for _, t := range tasks {
+	// Query all tasks from the collection
+	cur, err := tasksColl().Find(context.TODO(), bson.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer cur.Close(context.TODO())
+
+	// Iterate over the cursor and write each task to the CSV
+	for cur.Next(context.TODO()) {
+		var t Task
+		if err := cur.Decode(&t); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		writer.Write([]string{
-			t.ID,
+			t.ID.Hex(),
 			t.Name,
 			t.Status,
 			t.Description,
@@ -273,6 +278,11 @@ func exportTasksToCSV(c *gin.Context) {
 			t.DueDate,
 			strconv.FormatBool(t.IsComplete),
 		})
+	}
+
+	if err := cur.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 }

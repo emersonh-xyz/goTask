@@ -20,17 +20,25 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      fetch("http://localhost:8080/tasks")
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch");
-          return res.json();
-        })
-        .then((data) => setTasks(data))
-        .catch((err) => console.error(err));
+      handleFetchTasks()
     } catch (error) {
       console.error("An unexpected error occurred:", error);
     }
   }, [])
+
+  const handleFetchTasks = async () => {
+    await fetch("http://localhost:8080/tasks")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch tasks");
+        }
+        return res.json();
+      })
+      .then((data) => setTasks(data))
+      .catch((err) => {
+        console.error("Error fetching tasks:", err);
+      });
+  }
 
   const exportCSVC = () => {
     fetch("http://localhost:8080/tasks/export", {
@@ -79,7 +87,7 @@ export default function Home() {
         return res.json();
       })
       .then((createdTask) => {
-        setTasks((prev) => [...prev, createdTask]);
+        handleFetchTasks();
         setView("view");
       })
       .catch((err) => {
@@ -109,83 +117,92 @@ export default function Home() {
           </div>
           {view === "view" && (
             <div className="bg-base-100">
-
-              <table className="table">
-                <thead>
-                  <tr >
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Description</th>
-                    <th>Time Estimate</th>
-                    <th>Due Date</th>
-                    <th>Is Complete</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="rounded-3xl">
-                  {tasks.map((task: Task) => (
-                    <tr key={task.id}>
-                      <td>{task.id}</td>
-                      <td>{task.name}</td>
-                      <td>{task.status}</td>
-                      <td>{task.description}</td>
-                      <td>{task.timeEstimate || "N/A"}</td>
-                      <td>{task.dueDate || "N/A"}</td>
-                      <td>{task.isComplete ? "Yes" : "No"}</td>
-                      <td className="flex  items-center gap-2">
-                        <button
-                          className="btn btn-error btn-sm  btn-soft"
-                           onClick={() => {
-                                                // Send DELETE request to the backend
-                                                fetch(`http://localhost:8080/tasks/${task.id}`, {
-                                                    method: "DELETE",
-                                                })
-                        >
-                          Delete
-                        </button>
-                        <button
-                          className="btn btn-warning btn-sm  btn-soft"
-                          onClick={() => {
-                            setTaskToEdit(task);
-                            setView("edit");
-                          }}
-                        >
-                          Edit Task
-                        </button>
-                        <button
-                          className={`${task.isComplete ? "btn btn-soft btn-sm" : "btn btn-sm  btn-soft"
-                            } `}
-                          onClick={() => {
-                            fetch(`http://localhost:8080/tasks/complete/${task.id}`, {
-                              method: "PUT",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                            })
-                              .then((res) => {
-                                if (!res.ok) {
-                                  throw new Error("Failed to update task");
-                                }
-                                return res.json();
-                              })
-                              .then((savedTask) => {
-                                setTasks((prev) =>
-                                  prev.map((t) => (t.id === savedTask.id ? savedTask : t))
-                                );
-                              })
-                              .catch((err) => {
-                                console.error("Error updating task:", err);
-                              });
-                          }}
-                        >
-                          {task.isComplete ? <XIcon className="text-red-400" /> : <CheckIcon className="text-green-400" />}
-                        </button>
-                      </td>
+              {!tasks ? (
+                <div className="text-center py-4">
+                  <p className="text-lg text-gray-500">No tasks yet. Create a new task to get started!</p>
+                </div>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Description</th>
+                      <th>Time Estimate</th>
+                      <th>Due Date</th>
+                      <th>Is Complete</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="rounded-3xl">
+                    {tasks?.map((task: Task) => (
+                      <tr key={task.id}>
+                        <td>{task.id}</td>
+                        <td>{task.name}</td>
+                        <td>{task.description}</td>
+                        <td>{task.timeEstimate || ""}</td>
+                        <td>{task.dueDate || ""}</td>
+                        <td>{task.isComplete ? "Yes" : "No"}</td>
+                        <td className="flex items-center gap-2">
+                          <button
+                            className="btn btn-error btn-sm btn-soft"
+                            onClick={async () => {
+                              // Send DELETE request to the backend
+                              await fetch(`http://localhost:8080/tasks/${task.id}`, {
+                                method: "DELETE",
+                              });
+                              await handleFetchTasks();
+                            }}
+                          >
+                            Delete
+                          </button>
+                          <button
+                            className="btn btn-warning btn-sm btn-soft"
+                            onClick={() => {
+                              setTaskToEdit(task);
+                              setView("edit");
+                            }}
+                          >
+                            Edit Task
+                          </button>
+                          <button
+                            className={`${task.isComplete
+                              ? "btn btn-soft btn-sm"
+                              : "btn btn-sm btn-soft"
+                              }`}
+                            onClick={() => {
+                              fetch(`http://localhost:8080/tasks/complete/${task.id}`, {
+                                method: "PUT",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                },
+                              })
+                                .then((res) => {
+                                  if (!res.ok) {
+                                    throw new Error("Failed to update task");
+                                  }
+                                  return res.json();
+                                })
+                                .then((savedTask) => {
+                                  handleFetchTasks();
+                                })
+                                .catch((err) => {
+                                  console.error("Error updating task:", err);
+                                });
+                            }}
+                          >
+                            {task.isComplete ? (
+                              <XIcon className="text-red-400" />
+                            ) : (
+                              <CheckIcon className="text-green-400" />
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
           {view === 'create' && (
@@ -279,9 +296,7 @@ export default function Home() {
                       return res.json();
                     })
                     .then((savedTask) => {
-                      setTasks((prev) =>
-                        prev.map((t) => (t.id === savedTask.id ? savedTask : t))
-                      );
+                      handleFetchTasks();
                       setView("view");
                     })
                     .catch((err) => {
