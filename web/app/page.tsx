@@ -1,6 +1,7 @@
 'use client'
 import { CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react"
+import toast from "react-hot-toast";
 type Task = {
   id: string;
   userId: string;
@@ -89,6 +90,7 @@ export default function Home() {
       .then((createdTask) => {
         handleFetchTasks();
         setView("view");
+        toast("Task created successfully!");
       })
       .catch((err) => {
         console.error("Error creating task:", err);
@@ -101,7 +103,7 @@ export default function Home() {
         <div className="container mx-auto p-4">
           <div className="flex  justify-between items-center mb-6 mt-8">
             <h1 className="text-5xl font-bold">
-              go<span className="text-primary">Task</span>.
+              <span className="text-5xl">go</span><span className="text-primary">Task</span>.
             </h1>
             <div className="flex justify-end gap-3 ">
               <button className="btn btn-lg btn-primary btn-soft" onClick={() => setView("create")}>
@@ -145,30 +147,9 @@ export default function Home() {
                         <td>{task.isComplete ? "Yes" : "No"}</td>
                         <td className="flex items-center gap-2">
                           <button
-                            className="btn btn-error btn-sm btn-soft"
-                            onClick={async () => {
-                              // Send DELETE request to the backend
-                              await fetch(`http://localhost:8080/tasks/${task.id}`, {
-                                method: "DELETE",
-                              });
-                              await handleFetchTasks();
-                            }}
-                          >
-                            Delete
-                          </button>
-                          <button
-                            className="btn btn-warning btn-sm btn-soft"
-                            onClick={() => {
-                              setTaskToEdit(task);
-                              setView("edit");
-                            }}
-                          >
-                            Edit Task
-                          </button>
-                          <button
                             className={`${task.isComplete
-                              ? "btn btn-soft btn-sm"
-                              : "btn btn-sm btn-soft"
+                              ? "btn btn-soft btn-sm btn-circle"
+                              : "btn btn-sm btn-soft btn-circle"
                               }`}
                             onClick={() => {
                               fetch(`http://localhost:8080/tasks/complete/${task.id}`, {
@@ -185,6 +166,11 @@ export default function Home() {
                                 })
                                 .then((savedTask) => {
                                   handleFetchTasks();
+                                  toast(
+                                    task.isComplete
+                                      ? "Task marked as incomplete!"
+                                      : "Task marked as complete!"
+                                  );
                                 })
                                 .catch((err) => {
                                   console.error("Error updating task:", err);
@@ -192,10 +178,36 @@ export default function Home() {
                             }}
                           >
                             {task.isComplete ? (
-                              <XIcon className="text-red-400" />
+                              <span className="flex items-center gap-1">
+                                <XIcon className="text-red-400" />
+                              </span>
                             ) : (
-                              <CheckIcon className="text-green-400" />
+                              <span className="flex items-center gap-1">
+                                <CheckIcon className="text-green-400" />
+                              </span>
                             )}
+                          </button>
+                          <button
+                            className="btn btn-warning btn-sm btn-soft"
+                            onClick={() => {
+                              setTaskToEdit(task);
+                              setView("edit");
+                            }}
+                          >
+                            Edit Task
+                          </button>
+                          <button
+                            className="btn btn-error btn-sm btn-soft"
+                            onClick={async () => {
+                              // Send DELETE request to the backend
+                              await fetch(`http://localhost:8080/tasks/${task.id}`, {
+                                method: "DELETE",
+                              });
+                              await handleFetchTasks();
+                              toast("Task deleted successfully!");
+                            }}
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>
@@ -413,7 +425,7 @@ export default function Home() {
           )}
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 
