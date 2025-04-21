@@ -106,7 +106,7 @@ export default function Home() {
               <span className="text-5xl">go</span><span className="text-primary">Task</span>.
             </h1>
             <div className="flex justify-end gap-3 ">
-              <button className="btn btn-lg btn-primary btn-soft" onClick={() => setView("create")}>
+              <button className="btn btn-lg btn-primary" onClick={() => setView("create")}>
                 + New Task
               </button>
               <button
@@ -148,8 +148,8 @@ export default function Home() {
                         <td className="flex items-center gap-2">
                           <button
                             className={`${task.isComplete
-                              ? "btn btn-soft btn-sm btn-circle"
-                              : "btn btn-sm btn-soft btn-circle"
+                              ? "btn  btn-sm btn-error "
+                              : "btn btn-sm btn-success "
                               }`}
                             onClick={() => {
                               fetch(`http://localhost:8080/tasks/complete/${task.id}`, {
@@ -179,11 +179,13 @@ export default function Home() {
                           >
                             {task.isComplete ? (
                               <span className="flex items-center gap-1">
-                                <XIcon className="text-red-400" />
+                                <XIcon />
+                                <span>Mark Incomplete</span>
                               </span>
                             ) : (
                               <span className="flex items-center gap-1">
-                                <CheckIcon className="text-green-400" />
+                                <CheckIcon />
+                                <span>Mark Complete</span>
                               </span>
                             )}
                           </button>
@@ -261,19 +263,19 @@ export default function Home() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end mt-4">
+                <div className="flex justify-end mt-4 gap-2">
                   <button
                     type="button"
-                    className="bg-gray-500 text-white px-4 py-2 rounded mr-2"
+                    className="btn  "
                     onClick={() => setView("view")}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-blue-500 text-white px-4 py-2 rounded"
+                    className="btn btn-success"
                   >
-                    Save
+                    Create Task
                   </button>
                 </div>
               </form>

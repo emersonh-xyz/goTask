@@ -1,5 +1,8 @@
 @import "tailwindcss";
-@plugin "daisyui";
+
+@plugin "daisyui" {
+  themes: dark --default, light, cyberpunk, synthwave, retro
+}
 
 .background-wave {
   position: relative;

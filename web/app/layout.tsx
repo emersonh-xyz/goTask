@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" data-theme="dark">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <SignedIn>
             <header className="flex justify-end items-center p-4 gap-4 h-16 bg-base-200">
