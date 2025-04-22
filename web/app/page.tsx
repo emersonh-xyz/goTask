@@ -1,4 +1,5 @@
 'use client'
+import { time } from "console";
 import { CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast";
@@ -84,6 +85,8 @@ export default function Home() {
       name: formData.get("name"),
       status: "Pending",
       description: formData.get("description"),
+      dueDate: formData.get("dueDate"),
+      timeEstimate: parseInt(formData.get("timeEstimate") as string, 10), // Convert to integer
     };
 
     fetch("http://localhost:8080/tasks", {
@@ -95,6 +98,8 @@ export default function Home() {
     })
       .then((res) => {
         if (!res.ok) {
+          console.log("Response:", res);
+          res.text().then((text) => console.error("Error details:", text));
           throw new Error("Failed to create task");
         }
         return res.json();
@@ -117,7 +122,7 @@ export default function Home() {
           <div className="flex  justify-between items-center mb-6 mt-8">
             <h1 className="text-5xl font-bold">
               <span className="text-5xl">go</span><span className="text-primary">Task</span>.
-              <p className="text-sm mt-2">
+              <p className="text-sm mt-4">
                 {!tasks
                   ? "No tasks available."
                   : `You've completed ${getTotalCompletedTasks()} of ${tasks?.length} tasks.`}
